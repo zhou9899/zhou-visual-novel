@@ -32,6 +32,15 @@ const UIManager = {
     genderButtons: document.querySelectorAll('.gender-btn')
   },
 
+  // Audio elements
+  audio: {
+    bgMusic: document.getElementById('bg-music'),
+    ambientSfx: document.getElementById('ambient-sfx'),
+    uiSfx: document.getElementById('ui-sfx'),
+    audioContext: null,
+    unlocked: false
+  },
+
   // Game State
   isTyping: false,
   currentText: '',
@@ -43,7 +52,50 @@ const UIManager = {
   initialize() {
     this.bindEvents();
     this.loadSettings();
-    this.updateVolumeDisplays();
+    this.setupAudio();
+  },
+
+  // Setup audio system
+  setupAudio() {
+    // Create a user gesture unlock for audio
+    const unlockAudio = () => {
+      if (this.audio.unlocked) return;
+      
+      // Create and play a silent sound to unlock audio
+      const buffer = this.audio.audioContext.createBuffer(1, 1, 22050);
+      const source = this.audio.audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.audio.audioContext.destination);
+      source.start(0);
+      
+      this.audio.unlocked = true;
+      
+      // Remove event listeners
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+
+    // Initialize AudioContext
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.audio.audioContext = new AudioContext();
+      
+      // Add event listeners for first user interaction
+      document.addEventListener('click', unlockAudio);
+      document.addEventListener('touchstart', unlockAudio);
+    } catch (e) {
+      console.log('Web Audio API not supported:', e);
+    }
+
+    // Set up volume controls
+    this.elements.musicVolume.addEventListener('input', () => {
+      this.audio.bgMusic.volume = this.elements.musicVolume.value / 100;
+    });
+
+    this.elements.sfxVolume.addEventListener('input', () => {
+      this.audio.uiSfx.volume = this.elements.sfxVolume.value / 100;
+      this.audio.ambientSfx.volume = this.elements.sfxVolume.value / 100;
+    });
   },
 
   // Bind event listeners
@@ -58,6 +110,7 @@ const UIManager = {
       btn.addEventListener('click', (e) => {
         this.elements.genderButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        this.playSound('click');
       });
     });
     
@@ -108,6 +161,13 @@ const UIManager = {
           break;
       }
     });
+
+    // Enable audio on first user interaction
+    document.addEventListener('click', () => {
+      this.audio.bgMusic.play().catch(e => {
+        console.log('Audio play failed, will retry on game start:', e);
+      });
+    }, { once: true });
   },
 
   // Start game
@@ -138,11 +198,14 @@ const UIManager = {
     this.elements.welcomeScreen.classList.remove('active');
     this.elements.gameScreen.classList.add('active');
     
+    // Start background music
+    this.playMusic('assets/audio/music/main-theme.mp3').catch(e => {
+      console.log('Could not play music:', e);
+      // Fallback to silent audio to keep timing
+    });
+    
     // Start the game
     this.showScene('forest');
-    
-    // Play background music
-    this.playMusic('main');
   },
 
   // Show scene
@@ -167,6 +230,9 @@ const UIManager = {
     
     // Hide continue indicator until text is done
     this.elements.continueIndicator.style.display = 'none';
+    
+    // Play ambient sound for scene
+    this.playAmbient(scene.background);
   },
 
   // Type text with animation
@@ -200,6 +266,7 @@ const UIManager = {
     this.isTyping = false;
     this.elements.dialogueText.textContent = this.currentText;
     this.elements.continueIndicator.style.display = 'block';
+    this.playSound('complete');
     
     if (this.autoPlay) {
       setTimeout(() => this.continueDialogue(), 2000);
@@ -318,6 +385,11 @@ const UIManager = {
     this.elements.sfxVolume.value = settings.sfxVolume || 80;
     this.elements.textSpeed.value = settings.textSpeed || 20;
     this.typingSpeed = 100 - (settings.textSpeed || 20);
+    
+    // Apply loaded volumes
+    this.audio.bgMusic.volume = this.elements.musicVolume.value / 100;
+    this.audio.uiSfx.volume = this.elements.sfxVolume.value / 100;
+    this.audio.ambientSfx.volume = this.elements.sfxVolume.value / 100;
   },
 
   saveSettings() {
@@ -335,11 +407,7 @@ const UIManager = {
   },
 
   updateVolumeDisplays() {
-    const bgMusic = document.getElementById('bg-music');
-    const uiSfx = document.getElementById('ui-sfx');
-    
-    if (bgMusic) bgMusic.volume = this.elements.musicVolume.value / 100;
-    if (uiSfx) uiSfx.volume = this.elements.sfxVolume.value / 100;
+    // Already handled in loadSettings
   },
 
   // Save slots
@@ -381,6 +449,7 @@ const UIManager = {
     localStorage.setItem(`vn_save_${slotNumber}`, JSON.stringify(gameState));
     this.updateSaveSlots();
     this.showMessage(`Game saved to slot ${slotNumber}!`);
+    this.playSound('save');
   },
 
   loadGame(slotNumber) {
@@ -397,6 +466,7 @@ const UIManager = {
     this.hideSaveModal();
     this.showScene(saveData.scene);
     this.showMessage(`Game loaded from slot ${slotNumber}!`);
+    this.playSound('load');
   },
 
   // Game mode toggles
@@ -417,19 +487,109 @@ const UIManager = {
   },
 
   // Audio controls
-  playMusic(track) {
-    const music = document.getElementById('bg-music');
-    // In a real implementation, you would set different music files
-    music.volume = this.elements.musicVolume.value / 100;
-    music.play().catch(e => console.log('Music autoplay prevented:', e));
+  async playMusic(src) {
+    try {
+      if (this.audio.bgMusic.src !== src) {
+        this.audio.bgMusic.src = src;
+      }
+      
+      if (this.audio.audioContext && this.audio.audioContext.state === 'suspended') {
+        await this.audio.audioContext.resume();
+      }
+      
+      await this.audio.bgMusic.play();
+      this.audio.bgMusic.volume = this.elements.musicVolume.value / 100;
+      this.audio.bgMusic.loop = true;
+    } catch (error) {
+      console.log('Music playback failed:', error);
+      // Don't throw, just log
+    }
   },
 
-  playSound(sound) {
-    const sfx = document.getElementById('ui-sfx');
-    // In a real implementation, you would set different sound files
-    sfx.volume = this.elements.sfxVolume.value / 100;
-    sfx.currentTime = 0;
-    sfx.play().catch(e => console.log('SFX play error:', e));
+  async playAmbient(sceneType) {
+    const ambientMap = {
+      forest: 'assets/audio/sfx/forest.mp3',
+      castle: 'assets/audio/sfx/castle.mp3',
+      study_room: 'assets/audio/sfx/study.mp3',
+      world_map: 'assets/audio/sfx/world.mp3',
+      mountain: 'assets/audio/sfx/mountain.mp3',
+      magic_ruins: 'assets/audio/sfx/magic.mp3',
+      battle_arena: 'assets/audio/sfx/battle.mp3',
+      sky_night: 'assets/audio/sfx/sky.mp3'
+    };
+    
+    const src = ambientMap[sceneType] || ambientMap.forest;
+    
+    try {
+      if (this.audio.ambientSfx.src !== src) {
+        this.audio.ambientSfx.src = src;
+      }
+      
+      if (this.audio.audioContext && this.audio.audioContext.state === 'suspended') {
+        await this.audio.audioContext.resume();
+      }
+      
+      await this.audio.ambientSfx.play();
+      this.audio.ambientSfx.volume = this.elements.sfxVolume.value / 100 * 0.3; // 30% of SFX volume
+      this.audio.ambientSfx.loop = true;
+    } catch (error) {
+      console.log('Ambient playback failed:', error);
+      // Don't throw, just log
+    }
+  },
+
+  async playSound(type) {
+    // For now, use a simple beep for SFX since we don't have sound files
+    try {
+      if (this.audio.audioContext && this.audio.audioContext.state === 'suspended') {
+        await this.audio.audioContext.resume();
+      }
+      
+      // Create a simple oscillator for sound effects
+      if (this.audio.audioContext && this.audio.unlocked) {
+        const oscillator = this.audio.audioContext.createOscillator();
+        const gainNode = this.audio.audioContext.createGain();
+        
+        // Different frequencies for different sounds
+        let frequency = 800;
+        let duration = 0.1;
+        
+        switch(type) {
+          case 'click':
+            frequency = 600;
+            duration = 0.05;
+            break;
+          case 'complete':
+            frequency = 1000;
+            duration = 0.15;
+            break;
+          case 'error':
+            frequency = 300;
+            duration = 0.2;
+            break;
+          case 'save':
+            frequency = 1200;
+            duration = 0.3;
+            break;
+          case 'load':
+            frequency = 800;
+            duration = 0.3;
+            break;
+        }
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audio.audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, this.audio.audioContext.currentTime);
+        gainNode.gain.setValueAtTime(this.elements.sfxVolume.value / 100, this.audio.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, this.audio.audioContext.currentTime + duration);
+        
+        oscillator.start(this.audio.audioContext.currentTime);
+        oscillator.stop(this.audio.audioContext.currentTime + duration);
+      }
+    } catch (error) {
+      console.log('SFX playback failed:', error);
+    }
   },
 
   // Return to main menu
@@ -437,6 +597,8 @@ const UIManager = {
     if (confirm('Return to main menu? Unsaved progress will be lost.')) {
       this.elements.gameScreen.classList.remove('active');
       this.elements.welcomeScreen.classList.add('active');
+      this.audio.bgMusic.pause();
+      this.audio.ambientSfx.pause();
       this.playSound('click');
     }
   }

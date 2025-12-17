@@ -1,61 +1,43 @@
 # Zhou Visual Novel
 
-A beautifully crafted visual novel game with magical themes, character choices, and stunning visual effects.
-
-## Features
-
-- 🎭 **Character Customization**: Choose between male and female protagonist
-- 🏞️ **Dynamic Backgrounds**: 8 beautifully rendered scenes with parallax effects
-- ✨ **Visual Effects**: Particle systems, magic icons, character reactions
-- 🎵 **Immersive Audio**: Background music and ambient sound effects
-- 📖 **Branching Story**: Multiple paths and choices that affect the story
-- ⚔️ **Stat System**: Magic and strength stats that unlock different choices
-- 💾 **Save/Load System**: 6 save slots with auto-save capability
-- 🎮 **Multiple Controls**: Mouse, keyboard shortcuts, and touch support
-- ⚙️ **Customizable Settings**: Adjust volume, text speed, and more
+A fantasy visual novel game with beautiful visuals and immersive storytelling.
 
 ## How to Play
 
-1. **Start the Game**: Open `index.html` in a modern web browser
-2. **Create Character**: Enter your name and choose gender
-3. **Make Choices**: Click on dialogue choices to progress the story
-4. **Explore**: Visit different locations and discover the story
-5. **Save Progress**: Use the save button or Ctrl+S to save your game
+1. Open `index.html` in a web browser
+2. Enter your name and choose character gender
+3. Click "Start Adventure"
+4. Make choices by clicking on the dialogue options
+5. Use the control buttons to save, load, or adjust settings
+
+## Features
+
+- Beautiful background scenes
+- Character sprites with different emotions
+- Interactive choices that affect the story
+- Save/load system with 6 slots
+- Customizable settings (volume, text speed)
+- Visual effects and particles
+- Responsive design for mobile and desktop
 
 ## Controls
 
-- **Space/Enter**: Advance dialogue or make choice
+- **Click**: Advance dialogue or make choices
+- **Space/Enter**: Quick advance
 - **Ctrl+S**: Quick save
 - **Ctrl+L**: Quick load
-- **Escape**: Return to main menu
-- **Mouse Click**: Interact with UI elements
+- **Escape**: Return to menu
 
-## Game Locations
+## Audio Notes
 
-1. **Enchanted Forest** - Start your magical journey
-2. **Castle Zhou** - Meet allies and take quests
-3. **Study Room** - Learn magic and gain knowledge
-4. **World Map** - Travel to different locations
-5. **Mountain Pass** - Face challenges and enemies
-6. **Magic Ruins** - Discover ancient secrets
-7. **Battle Arena** - Test your skills in combat
-8. **Starry Night Sky** - Reflect on your journey
+The game uses Web Audio API for sound effects. Browsers may require user interaction before playing audio (click anywhere to enable sound).
 
-## Stat System
+## Development
 
-- **Magic**: Affects magical abilities and choices
-- **Strength**: Affects physical challenges and combat
+All files are organized in a modular structure:
+- `index.html` - Main HTML file
+- `css/style.css` - All styles
+- `js/` - JavaScript modules
+- `assets/` - Images and audio files
 
-Different story choices require minimum stat values to unlock.
-
-## Technical Details
-
-- **Built With**: Vanilla JavaScript, HTML5, CSS3
-- **No Dependencies**: Runs entirely in the browser
-- **Responsive Design**: Works on desktop and mobile devices
-- **Local Storage**: Saves progress and settings locally
-- **External Assets**: Uses free high-quality images and sprites
-
-## Project Structure
-
-EoF
+Enjoy the adventure!
